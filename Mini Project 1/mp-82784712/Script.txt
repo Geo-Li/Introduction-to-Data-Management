@@ -1,0 +1,68 @@
+1.
+select id, description, count(email)
+from blurts.blurt_analysis, blurts.topic
+where blurts.blurt_analysis.topicid = blurts.topic.id
+group by id;
+
+2.
+select name, count(follower)
+from blurts.user as usr, blurts.celebrity as cel, follow as fol
+where usr.email = cel.email and fol.followee = cel.email
+group by name;
+
+3.
+select name, count(text)
+from blurts.user as usr, blurts.celebrity as cel, blurts.blurt as blu
+where usr.email = cel.email and blu.email = cel.email
+group by name
+order by count(text) desc;
+
+4.
+select name
+from blurts.celebrity natural join blurts.user
+where email not in 
+(select follower from follow)
+
+5.
+select ven.name, amb.email, count(follower)
+from blurts.vendor_ambassador as amb, blurts.vendor as ven, blurts.follow as fol
+where amb.vendorid = ven.id and amb.email = fol.followee
+group by ven.name, amb.email
+
+6.
+select name, count(email)
+from blurts.vendor as ven, 
+(select vendorid, topicid, email
+from blurts.user natural join blurts.blurt_analysis natural join blurts.vendor_topics
+where type = 'R'
+group by vendorid, topicid, email) as ven_info
+where ven.id = ven_info.vendorid and ven_info.email not in 
+(select email
+from blurts.advertisement as ad, blurts.user_ad as uad
+where ad.id = uad.adid and ad.vendorid = ven_info.vendorid)
+group by ven_info.vendorid
+order by count(email) desc
+
+7.
+select distinct name_blurt1.name, name_blurt2.name
+from (select * from blurts.user natural join blurts.blurt_analysis) as name_blurt1, (select * from blurts.user natural join blurts.blurt_analysis) as name_blurt2
+where name_blurt1.email != name_blurt2.email and name_blurt1.topicid = name_blurt2.topicid and name_blurt1.email not in 
+(select follower
+from blurts.follow as fol
+where name_blurt2.email = fol.followee);
+
+
+8.
+select distinct usr1.email, usr2.email, usr3.email
+from blurts.user as usr1, blurts.user as usr2, blurts.user as usr3,
+blurts.follow fol1, blurts.follow fol2, blurts.follow fol3
+where usr1.email != usr3.email and usr1.email = fol1.follower and usr2.email = fol1.followee and usr2.email = fol2.follower and usr3.email = fol2.followee and usr1.email = fol3.follower and usr3.email != fol3.followee
+order by usr1.email, usr2.email, usr3.email;
+
+9.
+select id, description, location, tot_blurt, avg_sen
+from blurts.topic as top, 
+(select topicid, location, count(blurtid) as tot_blurt, avg(sentiment) as avg_sen
+from blurts.blurt natural join blurts.blurt_analysis
+group by topicid, location) as sen_eva
+where top.id = sen_eva.topicid and avg_sen < 0
